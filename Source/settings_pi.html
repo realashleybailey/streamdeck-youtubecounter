@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="utf-8" />
+        <title>com.ashleybailey.youtubecounter</title>
+        <link rel="stylesheet" href="./resources/scripts/sdpi.css">
+        <script src="./resources/scripts/common.js"></script>
+    </head>
+
+    <body>
+        <div class="sdpi-wrapper">
+            <div class="sdpi-item">
+                <div class="sdpi-item-label">API Key</div>
+                <input class="sdpi-item-value input" type="text" placeholder="API Key" id="apiKey">
+            </div>
+            <div class="sdpi-item">
+                <div class="sdpi-item-label">Channel ID</div>
+                <input class="sdpi-item-value input" type="text" placeholder="Channel ID" id="channelID">
+            </div>
+            <div class="sdpi-item">
+                <button class="sdpi-item-value button" type="button" onclick="submitValues()">Save</button>
+            </div>
+        </div>
+
+        <script>
+            var pluginAction = null
+            var uuid = ''
+
+            var apikey = document.getElementById('apiKey')
+            var channelID = document.getElementById('channelID')
+
+            if ($SD) {
+                $SD.on('connected', function(jsonObj) {
+
+                    // Get the UUID
+                    uuid = jsonObj['uuid'];
+
+                    // If the actionInfo exists, get the action
+                    if (jsonObj.hasOwnProperty('actionInfo')) {
+
+                        // Set the pluginAction variable
+                        pluginAction = jsonObj.actionInfo['action'];
+
+
+                        // If apiKey exists, set the value of the input
+                        if (jsonObj.actionInfo.payload.settings.hasOwnProperty('apikey')) {
+                            apikey.value = jsonObj.actionInfo.payload.settings['apikey']
+                        }
+
+                        // If channelID exists, set the value of the input
+                        if (jsonObj.actionInfo.payload.settings.hasOwnProperty('channelID')) {
+                            channelID.value = jsonObj.actionInfo.payload.settings['channelID']
+                        }
+                    }
+                });
+            };
+
+            function submitValues() {
+                if ($SD && $SD.connection) {
+                    $SD.api.sendToPlugin(uuid, pluginAction, {
+                        'apikey': apikey.value,
+                        'channelID': channelID.value
+                    });
+                }
+            }
+
+        </script>
+
+    </body>
+
+</html>

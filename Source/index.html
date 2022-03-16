@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html>
+
+	<head>
+		<title>com.ashleybailey.youtubecounter</title>
+		<meta charset="utf-8" />
+		<script src="resources/scripts/timer.js"></script>
+		<script src="resources/bower_components/numeral/numeral.js"></script>
+
+	</head>
+
+	<body>
+		<script>
+
+			var websocket = null;
+			var pluginUUID = null;
+			var contextCache = null;
+			var settingsCache = {};
+			var loopTimer = null;
+
+			var DestinationEnum = Object.freeze({ "HARDWARE_AND_SOFTWARE": 0, "HARDWARE_ONLY": 1, "SOFTWARE_ONLY": 2 })
+
+			var pluginActions = {
+
+				type: "com.ashleybailey.youtubecounter.action",
+
+				onKeyDown: function(context, settings, coordinates, userDesiredState) {
+				},
+
+				onKeyUp: function(context, settings, coordinates, userDesiredState) {
+					contextCache = context
+					settingsCache = settings
+					updateCounter(context, settings)
+				},
+
+				onWillAppear: function(context, settings, coordinates) {
+					contextCache = context
+					settingsCache = settings;
+					updateCounter(context, settings)
+				},
+
+				SetTitle: function(context, text) {
+					var json = {
+						"event": "setTitle",
+						"context": context,
+						"payload": {
+							"title": `${text}`,
+							"target": DestinationEnum.HARDWARE_AND_SOFTWARE
+						}
+					};
+
+					websocket.send(JSON.stringify(json));
+				},
+
+				getSettings: function(context, payload) {
+					websocket.send(context, 'getSettings', {});
+				},
+
+				setSettings: function(context, value) {
+
+					var json = {
+						"event": "setSettings",
+						"context": context,
+						"payload": value
+					};
+
+					websocket.send(JSON.stringify(json));
+
+					updateCounter(context, value)
+				},
+
+				AddToSettings: function(context, newSettings) {
+					settingsCache = Object.assign(settingsCache, newSettings);
+				}
+			};
+
+			function abbreviateNumber(value) {
+				return numeral(value).format('0.0a');
+			}
+
+			function retrieveYoutubeData(apiKey, channelID, callback) {
+				fetch('https://www.googleapis.com/youtube/v3/channels?part=statistics&id=' + channelID + '&key=' + apiKey)
+					.then(function(response) {
+						return response.json();
+					})
+					.then(function(json) {
+						callback(json);
+					})
+					.catch(function(error) {
+						pluginActions.SetTitle(contextCache, 'ERROR\nCheck\nSettings');
+					});
+			}
+
+			function updateCounter(context, settings) {
+				retrieveYoutubeData(settings["apikey"], settings["channelID"], function(data) {
+					var subscriberCount = data["items"][0]["statistics"]["subscriberCount"];
+					pluginActions.SetTitle(context, abbreviateNumber(subscriberCount));
+				})
+			}
+
+			function connectElgatoStreamDeckSocket(inPort, inPluginUUID, inRegisterEvent, inInfo) {
+				pluginUUID = inPluginUUID
+
+				// Open the web socket
+				websocket = new WebSocket("ws://127.0.0.1:" + inPort);
+
+				function registerPlugin(inPluginUUID) {
+					var json = {
+						"event": inRegisterEvent,
+						"uuid": inPluginUUID
+					};
+
+					websocket.send(JSON.stringify(json));
+					window.websocket = websocket
+				};
+
+				websocket.onopen = function() {
+					// WebSocket is connected, send message
+					registerPlugin(pluginUUID);
+				};
+
+				websocket.onmessage = function(evt) {
+					// Received message from Stream Deck
+					var jsonObj = JSON.parse(evt.data);
+					var event = jsonObj['event'];
+					var action = jsonObj['action'];
+					var context = jsonObj['context'];
+					var jsonPayload = jsonObj['payload'] || {};
+
+					// Handle the keyDown event
+					if (event == "keyDown") {
+						var settings = jsonPayload['settings'];
+						var coordinates = jsonPayload['coordinates'];
+						var userDesiredState = jsonPayload['userDesiredState'];
+						pluginActions.onKeyDown(context, settings, coordinates, userDesiredState);
+					}
+
+					// Handle the keyUp event
+					else if (event == "keyUp") {
+						var settings = jsonPayload['settings'];
+						var coordinates = jsonPayload['coordinates'];
+						var userDesiredState = jsonPayload['userDesiredState'];
+						pluginActions.onKeyUp(context, settings, coordinates, userDesiredState);
+					}
+
+					// Handle the willAppear event
+					else if (event == "willAppear") {
+						var settings = jsonPayload['settings'];
+						var coordinates = jsonPayload['coordinates'];
+						pluginActions.onWillAppear(context, settings, coordinates);
+					}
+
+					// Handle the sendToPlugin event
+					else if (event == "sendToPlugin") {
+						pluginActions.setSettings(context, jsonPayload);
+					}
+
+					else if (event == "timerUpdate") {
+						updateCounter(contextCache, settingsCache)
+					}
+				};
+
+				websocket.onclose = function() {
+					// Websocket is closed
+				};
+			};
+
+		</script>
+
+	</body>
+
+</html>

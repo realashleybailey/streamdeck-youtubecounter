@@ -1,0 +1,36 @@
+{
+  "Actions": [
+    {
+      "Icon": "resources/images/actionIcon",
+      "Name": "Youtube Counter",
+      "States": [
+        {
+          "Image": "resources/images/actionDefaultImage",
+          "TitleAlignment": "middle",
+          "FontFamily": "Arial",
+          "TitleColor": "#ffffff",
+          "FontStyle": "Bold",
+          "FontSize": "19"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "This action displays the number of subscribers on a YouTube channel.",
+      "UUID": "com.ashleybailey.youtubecounter.action"
+    }
+  ],
+  "SDKVersion": 2,
+  "Author": "Ashley Bailey",
+  "Description": "This lets you display the number of subscribers on a YouTube channel.",
+  "CodePath": "index.html",
+  "PropertyInspectorPath": "settings_pi.html",
+  "Name": "YouTube Counter",
+  "Icon": "resources/images/pluginIcon",
+  "URL": "https://github.com/realashleybailey",
+  "Version": "1.4",
+  "Software": { "MinimumVersion": "4.1" },
+  "TimerInterval": 60000,
+  "OS": [
+    { "Platform": "mac", "MinimumVersion": "10.11" },
+    { "Platform": "windows", "MinimumVersion": "10" }
+  ]
+}
